@@ -2,13 +2,14 @@ import boto3
 import csv
 import argparse
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('coffee_pool-dev')
-
 parser = argparse.ArgumentParser()
+parser.add_argument("table_name", help="Table name to export")
 parser.add_argument('--attributes',type=str)
 parser.add_argument('--limit', type=int)
 args = parser.parse_args()
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(args.table_name)
 
 scan_params = {}
 scan_params['Limit'] = args.limit if args.limit else 100
