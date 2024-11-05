@@ -1,4 +1,4 @@
-import boto3
+import boto3.session
 import csv
 import argparse
 
@@ -15,11 +15,13 @@ session = boto3.session.Session(
 dynamodb = session.resource('dynamodb')
 table = dynamodb.Table(args.table_name)
 
-scan_params = {}
+scan_params: dict = {}
 scan_params['Limit'] = args.limit if args.limit else 100
 if args.attributes:
+    attribute_list: list[str] = args.attributes.split(',')
     scan_params['Select'] = 'SPECIFIC_ATTRIBUTES'
-    scan_params['ProjectionExpression'] = args.attributes
+    scan_params['ExpressionAttributeNames'] = { f"#{att}": att for att in attribute_list}
+    scan_params['ProjectionExpression'] = ", ".join(f"#{att}" for att in attribute_list)
 else:
     scan_params['Select'] = 'ALL_ATTRIBUTES'
 
@@ -39,3 +41,4 @@ with open(csv_file, 'w', newline='') as file:
     writer = csv.DictWriter(file, fieldnames)
     writer.writeheader()
     writer.writerows(data)
+    print(f"Data exported to {csv_file} successfully.")
