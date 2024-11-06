@@ -43,15 +43,17 @@ def export_dynamodb_to_csv(args: Namespace) -> None:
         scan_params['Select'] = 'ALL_ATTRIBUTES'
 
     try:
-        response = table.scan(**scan_params)
-        data = response['Items']
-
-        while 'LastEvaluatedKey' in response:
+        exported_items: list[dict[str, Any]] = []
+        while True:
+            response = table.scan(**scan_params)
+            if not response['Items']:
+                break
+            exported_items.extend(response['Items'])
+            print(f'Exporting data... {len(exported_items)} items')
+            if 'LastEvaluatedKey' not in response:
+                break
             scan_params['ExclusiveStartKey'] = response['LastEvaluatedKey']
 
-            response = table.scan(**scan_params)
-            data.extend(response['Items'])
-            print(f'Exporting data... {len(data)} items')
     except Exception as e:
         print(f"Error scanning the table: {e}")
         exit(1)
@@ -59,11 +61,11 @@ def export_dynamodb_to_csv(args: Namespace) -> None:
     try:
         csv_file = 'output.csv'
         with open(csv_file, 'w', newline='') as file:
-            if data:
-                fieldnames = data[0].keys()
+            if exported_items:
+                fieldnames = exported_items[0].keys()
                 writer = csv.DictWriter(file, fieldnames)
                 writer.writeheader()
-                writer.writerows(data)
+                writer.writerows(exported_items)
                 print(f"Data exported to {csv_file} successfully.")
             else:
                 print("No data found on specified table")
