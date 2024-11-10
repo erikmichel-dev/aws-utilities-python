@@ -21,16 +21,17 @@ def parse_arguments() -> Namespace:
     return parser.parse_args()
 
 
-def export_dynamodb_to_csv(args: Namespace) -> None:
+def export_dynamodb_to_csv(args: Namespace, dynamodb=None) -> None:
     try:
-        session = boto3.session.Session(
-            profile_name=args.profile if args.profile else 'default'
-        )
-        dynamodb = session.resource('dynamodb')
+        if not dynamodb:
+            session = boto3.session.Session(
+                profile_name=args.profile if args.profile else 'default'
+            )
+            dynamodb = session.resource('dynamodb')
         table = dynamodb.Table(args.table_name)
     except Exception as e:
         print(f"Error initializing AWS session: {e}")
-        exit(1)
+        return
 
     scan_params: dict[str, Any] = {}
     scan_params['Limit'] = args.limit or 100
@@ -61,7 +62,7 @@ def export_dynamodb_to_csv(args: Namespace) -> None:
 
     except Exception as e:
         print(f"Error scanning the table: {e}")
-        exit(1)
+        return
 
     try:
         csv_file = 'output.csv'
@@ -76,6 +77,7 @@ def export_dynamodb_to_csv(args: Namespace) -> None:
                 print("No data found on specified table")
     except Exception as e:
         print(F"Error writing to CSV file: {e}")
+        return
 
 
 def main():
